@@ -3,6 +3,8 @@
 Package worker implements an easy to use concurrency framework for
 multiple-job Go program.
 
+[![GoDoc](https://godoc.org/github.com/duzy/worker?status.svg)](http://godoc.org/github.com/duzy/worker)
+
 Here is a quick example demonstrating the usage.
 
 ```go
