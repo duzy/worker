@@ -33,13 +33,12 @@ func New() *Worker {
 }
 
 func (w *Worker) routine(num int) {
-        for {
-                if msg := <-w.i; msg != nil {
-                        w.o <- msg.Action(); go w.reply()
-                        if stop, ok := msg.(*stop); ok {
-                                stop.waiter <- num
-                                break
-                        }
+        for msg := range w.i {
+                if msg == nil { continue }
+                w.o <- msg.Action(); go w.reply()
+                if stop, ok := msg.(*stop); ok {
+                        stop.waiter <- num
+                        break
                 }
         }
 }
@@ -66,6 +65,8 @@ func (w *Worker) StopN(num int) {
         for i := 0; i < num; i++ {
                 _ = <-barrier
         }
+        //close(w.i)
+        //close(w.o)
 }
 
 // Worker.Do perform a job.
