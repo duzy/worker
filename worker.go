@@ -24,8 +24,8 @@ type Worker struct {
         o chan Result
 }
 
-// NewWorker creates a new worker valid to do user-defined jobs.
-func NewWorker() *Worker {
+// New creates a new worker valid to do user-defined jobs.
+func New() *Worker {
         return &Worker{
                 i: make(chan Job, 1),
                 o: make(chan Result, 1), // at least one buffer

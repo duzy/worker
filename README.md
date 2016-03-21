@@ -31,7 +31,7 @@ func (res *SomeJobResponder) Action() {
 const NumberOfConcurrency = 10
 
 func main() {
-        w := worker.NewWorker()
+        w := worker.New()
         w.StartN(NumberOfConcurrency)
 
         w.Do(&SomeJob{ "anything goes" })

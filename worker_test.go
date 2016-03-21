@@ -25,7 +25,7 @@ func (job *checkResult) Action() {
 
 func TestWorker(t *testing.T) {
         job := new(increaseNumber)
-        w := NewWorker()
+        w := New()
         w.StartN(3)
         w.Do(job)
         w.Do(job)

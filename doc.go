@@ -30,7 +30,7 @@ Here is a quick example demonstrating the usage.
         const NumberOfConcurrency = 10
 
         func main() {
-                w := worker.NewWorker()
+                w := worker.New()
                 w.StartN(NumberOfConcurrency)
 
                 w.Do(&SomeJob{ "anything goes" })
