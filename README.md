@@ -5,6 +5,7 @@ multiple-job Go program.
 
 Here is a quick example demonstrating the usage.
 
+```go
         package example
 
         import "github.com/duzy/worker"
@@ -38,4 +39,4 @@ Here is a quick example demonstrating the usage.
 
                 w.StopN(NumberOfConcurrency)
         }
-
+```
