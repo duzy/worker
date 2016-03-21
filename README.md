@@ -6,37 +6,37 @@ multiple-job Go program.
 Here is a quick example demonstrating the usage.
 
 ```go
-        package example
+package example
 
-        import "github.com/duzy/worker"
+import "github.com/duzy/worker"
 
-        type SomeJob struct {
-                Param string
-        }
+type SomeJob struct {
+        Param string
+}
 
-        func (job *SomeJob) Action() worker.Result {
-                // ...
-                return &SomeJobResponder{}
-        }
+func (job *SomeJob) Action() worker.Result {
+        // ...
+        return &SomeJobResponder{}
+}
 
-        type SomeJobResponder struct {
-        }
+type SomeJobResponder struct {
+}
 
-        func (res *SomeJobResponder) Action() {
-                // ...
-        }
+func (res *SomeJobResponder) Action() {
+        // ...
+}
 
-        const NumberOfConcurrency = 10
+const NumberOfConcurrency = 10
 
-        func main() {
-                w := worker.NewWorker()
-                w.StartN(NumberOfConcurrency)
+func main() {
+        w := worker.NewWorker()
+        w.StartN(NumberOfConcurrency)
 
-                w.Do(&SomeJob{ "anything goes" })
-                w.Do(&SomeJob{ "anything goes" })
-                w.Do(&SomeJob{ "anything goes" })
-                w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
 
-                w.StopN(NumberOfConcurrency)
-        }
+        w.StopN(NumberOfConcurrency)
+}
 ```
