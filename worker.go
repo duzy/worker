@@ -9,9 +9,9 @@ import (
 // Result represents a delivery of a job done.
 type Result interface {}
 
-// ResultJob represents a delivery of a job done and the Action() will
+// ReplyJob represents a delivery of a job done and the Action() will
 // be called when done.
-type ResultJob interface {
+type ReplyJob interface {
         Action()
 }
 
@@ -22,9 +22,28 @@ type Job interface {
 
 // Sentry is used to ensure a sequence of jobs are done at a point.
 type Sentry struct {
+        worker *Worker
+        mutex *sync.Mutex
+        results []Result
+        waiter *sync.WaitGroup
 }
 
-type stop struct { waiter *sync.WaitGroup }
+type guard struct {
+        sentry *Sentry
+        job Job
+}
+func (m *guard) Action() Result {
+        result := m.job.Action()
+        m.sentry.mutex.Lock() 
+        m.sentry.results = append(m.sentry.results, result)
+        m.sentry.mutex.Unlock()
+        m.sentry.waiter.Done()
+        return nil
+}
+
+type stop struct {
+        waiter *sync.WaitGroup
+}
 func (m *stop) Action() Result { return nil }
 
 // Worker represents a worker to dispatch jobs being done.
@@ -54,7 +73,7 @@ func (w *Worker) routine(num int) {
 
 func (w *Worker) reply(wg *sync.WaitGroup) {
         if res := <-w.o; res != nil {
-                if j, ok := res.(ResultJob); ok && j != nil {
+                if j, ok := res.(ReplyJob); ok && j != nil {
                         j.Action()
                 }
         }
@@ -106,19 +125,24 @@ func (w *Worker) Do(m Job) {
         }
 }
 
-func (w *Worker) Sentry() (s *Sentry) {
-        s = new(Sentry)
-        // TODO: ...
-        return
+// Set a new sentry for the worker.
+func (w *Worker) Sentry() *Sentry {
+        sentry := &Sentry{ 
+                worker: w, 
+                mutex: new(sync.Mutex),
+                waiter: new(sync.WaitGroup),
+        }
+        return sentry
 }
 
+// Perform a guarded job by the sentry.
+func (s *Sentry) Guard(m Job) {
+        s.waiter.Add(1)
+        s.worker.Do(&guard{ s, m })
+}
+
+// Wait for finish of all guarded jobs. 
 func (s *Sentry) Wait() (results []Result) {
-        s.WaitFunc(func(result Result){
-                results = append(results, result)
-        })
-        return
-}
-
-func (s *Sentry) WaitFunc(f func(result Result)) {
-        // TODO: ...
+        s.waiter.Wait()
+        return s.results
 }
