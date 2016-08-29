@@ -58,6 +58,13 @@ func New() *Worker {
         return &Worker{}
 }
 
+// New creates a new worker and spawn N threads to do user-defined jobs.
+func SpawnN(num int) *Worker {
+        w := New()
+        w.SpawnN(num)
+        return w
+}
+
 func (w *Worker) routine(num int) {
         for msg := range w.i {
                 if msg != nil {
