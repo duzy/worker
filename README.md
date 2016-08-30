@@ -15,30 +15,41 @@ import "github.com/duzy/worker"
 type SomeJob struct {
         Param string
 }
-
 func (job *SomeJob) Action() worker.Result {
         // ...
-        return &SomeJobResponder{}
+        return &ContinualJob{}
 }
 
-type SomeJobResponder struct {
+type ContinualJob struct {
 }
-
-func (res *SomeJobResponder) Action() {
+func (job *ContinualJob) Action() worker.Result {
         // ...
+        return &ThirdStep{}
+}
+
+type ThirdStep struct {
+}
+func (job *ThirdStep) Action() worker.Result {
+        // ...
+        return nil
 }
 
 const NumberOfConcurrency = 10
 
 func main() {
-        w := worker.New()
-        w.StartN(NumberOfConcurrency)
+        w := worker.SpawnN(NumberOfConcurrency)
+        w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
+        w.Do(&SomeJob{ "anything goes" })
+        w.KillAll()
 
-        w.Do(&SomeJob{ "anything goes" })
-        w.Do(&SomeJob{ "anything goes" })
-        w.Do(&SomeJob{ "anything goes" })
-        w.Do(&SomeJob{ "anything goes" })
-
-        w.StopN(NumberOfConcurrency)
+        sentry := w.Sentry()
+        sentry.Guard(&SomeJob{ "anything goes" })
+        sentry.Guard(&SomeJob{ "anything goes" })
+        sentry.Guard(&SomeJob{ "anything goes" })
+        for result, _ := range sentry.Wait() {
+            // ...
+        }
 }
 ```
