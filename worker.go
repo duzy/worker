@@ -9,12 +9,6 @@ import (
 // Result represents a delivery of a job done.
 type Result interface {}
 
-// ReplyJob represents a delivery of a job done and the Action() will
-// be called when done.
-type ReplyJob interface {
-        Action()
-}
-
 // Job represents a piece of job to be done.
 type Job interface {
         Action() Result
@@ -38,7 +32,7 @@ func (m *guard) Action() Result {
         m.sentry.results = append(m.sentry.results, result)
         m.sentry.mutex.Unlock()
         m.sentry.waiter.Done()
-        return nil
+        return result
 }
 
 type stop struct {
@@ -72,16 +66,18 @@ func (w *Worker) routine(num int) {
                         if stop, ok := msg.(*stop); ok && stop != nil {
                                 sw = stop.waiter
                         }
-                        w.o <- msg.Action(); go w.reply(sw)
+                        w.o <- msg.Action(); go w.advance(sw)
                         if sw != nil { return }
                 }
         }
 }
 
-func (w *Worker) reply(wg *sync.WaitGroup) {
-        if res := <-w.o; res != nil {
-                if j, ok := res.(ReplyJob); ok && j != nil {
-                        j.Action()
+func (w *Worker) advance(wg *sync.WaitGroup) {
+        for res := <-w.o; res != nil; {
+                if j, ok := res.(Job); ok && j != nil {
+                        res = j.Action()
+                } else {
+                        break
                 }
         }
         if wg != nil {
@@ -104,8 +100,8 @@ func (w *Worker) SpawnN(num int) error {
         return nil
 }
 
-// Worker.KillN stops a number of `num` threads.
-func (w *Worker) KillAll() error {
+// Worker.Kill stops all threads.
+func (w *Worker) Kill() error {
         if w.i == nil {
                 return errors.New("worker free")
         }
@@ -134,6 +130,9 @@ func (w *Worker) Do(m Job) {
 
 // Set a new sentry for the worker.
 func (w *Worker) Sentry() *Sentry {
+        if w.i == nil || w.o == nil {
+                return nil
+        }
         sentry := &Sentry{ 
                 worker: w, 
                 mutex: new(sync.Mutex),

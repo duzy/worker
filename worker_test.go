@@ -25,9 +25,10 @@ type checkResult struct {
         number int
 }
 
-func (job *checkResult) Action() {
+func (job *checkResult) Action() Result {
         checkMutex.Lock(); defer checkMutex.Unlock()
         checkCounter++
+        return nil
 }
 
 func TestWorker(t *testing.T) {
@@ -38,7 +39,7 @@ func TestWorker(t *testing.T) {
         for i := 0; i < num; i++ {
                 w.Do(job)
         }
-        w.KillAll()
+        w.Kill()
         if job.number != num { t.Errorf("wrong job number") }
         if checkCounter != num { t.Errorf("wrong number of replies") }
 }
@@ -68,5 +69,73 @@ func TestSentry(t *testing.T) {
                 }
         }
 
-        w.KillAll()
+        w.Kill()
+}
+
+var (
+        job0Executed = 0
+        job1Executed = 0
+        job2Executed = 0
+        job0Mutex = new(sync.Mutex)
+        job1Mutex = new(sync.Mutex)
+        job2Mutex = new(sync.Mutex)
+)
+type job0 struct {
+        tag string
+}
+func (job *job0) Action() Result {
+        job0Mutex.Lock(); defer job0Mutex.Unlock()
+        job0Executed++
+        return new(job1)
+}
+
+type job1 struct {
+        tag string
+}
+func (job *job1) Action() Result {
+        job1Mutex.Lock(); defer job1Mutex.Unlock()
+        job1Executed++
+        return new(job2)
+}
+
+type job2 struct {
+        tag string
+}
+func (job *job2) Action() Result {
+        job2Mutex.Lock(); defer job2Mutex.Unlock()
+        job2Executed++
+        return "done"
+}
+
+func TestJobChain(t *testing.T) {
+        job := new(job0)
+        
+        w, num := New(), 10000
+        w.SpawnN(3)
+        for i := 0; i < num; i++ {
+                w.Do(job)
+        }
+        w.Kill()
+        
+        if job0Executed != num { t.Errorf("job0: %v != %v", job0Executed, num) }
+        if job1Executed != num { t.Errorf("job1: %v != %v", job1Executed, num) }
+        if job2Executed != num { t.Errorf("job2: %v != %v", job2Executed, num) }
+        
+        job0Executed = 0
+        job1Executed = 0
+        job2Executed = 0
+
+        w = SpawnN(1)
+        sentry := w.Sentry()
+        sentry.Guard(&job0{"job0"})
+        sentry.Guard(&job1{"job1"})
+        sentry.Guard(&job2{"job2"})
+        for _, result := range sentry.Wait() {
+                if s, ok := result.(string); !ok || s != "done" {
+                        t.Errorf("%v != done", result)
+                }
+        }
+        if job0Executed != 1 { t.Errorf("job0: %v != %v", job0Executed, 1) }
+        if job1Executed != 2 { t.Errorf("job1: %v != %v", job1Executed, 2) }
+        if job2Executed != 3 { t.Errorf("job2: %v != %v", job2Executed, 3) }
 }
