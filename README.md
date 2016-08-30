@@ -17,7 +17,7 @@ type SomeJob struct {
 }
 func (job *SomeJob) Action() worker.Result {
         // ...
-        return &SomeJobResponder{}
+        return &ContinualJob{}
 }
 
 type ContinualJob struct {
