@@ -14,6 +14,9 @@ type Job interface {
         Action() Result
 }
 
+// Continual job
+type Continue Job
+
 // Sentry is used to ensure a sequence of jobs are done at a point.
 type Sentry struct {
         worker *Worker
@@ -27,7 +30,15 @@ type guard struct {
         job Job
 }
 func (m *guard) Action() Result {
-        result := m.job.Action()
+        return &unguard{ m.sentry, m.job.Action() }
+}
+
+type unguard struct {
+        sentry *Sentry
+        result Result
+}
+func (m *unguard) Action() Result {
+        result := chainJob(m.result)
         m.sentry.mutex.Lock() 
         m.sentry.results = append(m.sentry.results, result)
         m.sentry.mutex.Unlock()
@@ -59,6 +70,17 @@ func SpawnN(num int) *Worker {
         return w
 }
 
+func chainJob(result Result) Result {
+        for ; result != nil; {
+                if j, ok := result.(Continue); ok && j != nil {
+                        result = j.Action()
+                } else {
+                        break
+                }
+        }
+        return result
+}
+
 func (w *Worker) routine(num int) {
         for msg := range w.i {
                 if msg != nil {
@@ -73,14 +95,7 @@ func (w *Worker) routine(num int) {
 }
 
 func (w *Worker) advance(wg *sync.WaitGroup) {
-        for res := <-w.o; res != nil; {
-                if j, ok := res.(Job); ok && j != nil {
-                        res = j.Action()
-                } else {
-                        break
-                }
-        }
-        if wg != nil {
+        if chainJob(<-w.o); wg != nil {
                 wg.Done()
         }
 }
