@@ -12,25 +12,25 @@ package example
 
 import "github.com/duzy/worker"
 
-type SomeJob struct {
+type StepOne struct {
         Param string
 }
-func (job *SomeJob) Action() worker.Result {
-        // ...
-        return &ContinualJob{}
+func (job *StepOne) Action() worker.Result {
+        // do job for step one
+        return &StepTwo{}
 }
 
-type ContinualJob struct {
+type StepTwo struct {
 }
-func (job *ContinualJob) Action() worker.Result {
-        // ...
-        return &ThirdStep{}
+func (job *StepTwo) Action() worker.Result {
+        // do job for step two
+        return &StepThree{}
 }
 
-type ThirdStep struct {
+type StepThree struct {
 }
-func (job *ThirdStep) Action() worker.Result {
-        // ...
+func (job *StepThree) Action() worker.Result {
+        // do job for step three
         return nil
 }
 
@@ -38,16 +38,17 @@ const NumberOfConcurrency = 10
 
 func main() {
         w := worker.SpawnN(NumberOfConcurrency)
-        w.Do(&SomeJob{ "anything goes" })
-        w.Do(&SomeJob{ "anything goes" })
-        w.Do(&SomeJob{ "anything goes" })
-        w.Do(&SomeJob{ "anything goes" })
-        w.KillAll()
+        w.Do(&StepOne{ "anything goes" })
+        w.Do(&StepOne{ "anything goes" })
+        w.Do(&StepOne{ "anything goes" })
+        w.Do(&StepOne{ "anything goes" })
+        w.Kill()
 
+        w = SpawnN(3)
         sentry := w.Sentry()
-        sentry.Guard(&SomeJob{ "anything goes" })
-        sentry.Guard(&SomeJob{ "anything goes" })
-        sentry.Guard(&SomeJob{ "anything goes" })
+        sentry.Guard(&StepOne{ "anything goes" })
+        sentry.Guard(&StepOne{ "anything goes" })
+        sentry.Guard(&StepOne{ "anything goes" })
         for result, _ := range sentry.Wait() {
             // ...
         }
