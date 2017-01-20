@@ -117,6 +117,11 @@ func (w *Worker) SpawnN(num int) error {
 
 // Worker.Kill stops all threads.
 func (w *Worker) Kill() error {
+        // TODO: stops all threads immediately
+        return w.Wait()
+}
+
+func (w *Worker) Wait() error {
         if w.i == nil {
                 return errors.New("worker free")
         }
