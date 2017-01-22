@@ -11,7 +11,7 @@ type Result interface {}
 
 // Job represents a piece of job to be done.
 type Job interface {
-        Action() Result
+        Go(n int) Result
 }
 
 // Continual job
@@ -29,15 +29,15 @@ type guard struct {
         sentry *Sentry
         job Job
 }
-func (m *guard) Action() Result {
-        return &unguard{ m.sentry, m.job.Action() }
+func (m *guard) Go() Result {
+        return &unguard{ m.sentry, m.job.Go() }
 }
 
 type unguard struct {
         sentry *Sentry
         result Result
 }
-func (m *unguard) Action() Result {
+func (m *unguard) Go() Result {
         result := chainJob(m.result)
         m.sentry.mutex.Lock() 
         m.sentry.results = append(m.sentry.results, result)
@@ -49,7 +49,7 @@ func (m *unguard) Action() Result {
 type stop struct {
         waiter *sync.WaitGroup
 }
-func (m *stop) Action() Result { return nil }
+func (m *stop) Go() Result { return nil }
 
 // Worker represents a worker to dispatch jobs being done.
 type Worker struct {
@@ -73,7 +73,7 @@ func SpawnN(num int) *Worker {
 func chainJob(result Result) Result {
         for ; result != nil; {
                 if j, ok := result.(Continue); ok && j != nil {
-                        result = j.Action()
+                        result = j.Go()
                 } else {
                         break
                 }
@@ -88,7 +88,7 @@ func (w *Worker) routine(num int) {
                         if stop, ok := msg.(*stop); ok && stop != nil {
                                 sw = stop.waiter
                         }
-                        w.o <- msg.Action(); go w.advance(sw)
+                        w.o <- msg.Go(num); go w.advance(sw)
                         if sw != nil { return }
                 }
         }
@@ -121,6 +121,7 @@ func (w *Worker) Kill() error {
         return w.Wait()
 }
 
+// Worker.Wait waits all jobs for finished.
 func (w *Worker) Wait() error {
         if w.i == nil {
                 return errors.New("worker free")

@@ -15,21 +15,21 @@ import "github.com/duzy/worker"
 type StepOne struct {
         Param string
 }
-func (job *StepOne) Action() worker.Result {
+func (job *StepOne) Go() worker.Result {
         // do job for step one
         return &StepTwo{}
 }
 
 type StepTwo struct {
 }
-func (job *StepTwo) Action() worker.Result {
+func (job *StepTwo) Go() worker.Result {
         // do job for step two
         return &StepThree{}
 }
 
 type StepThree struct {
 }
-func (job *StepThree) Action() worker.Result {
+func (job *StepThree) Go() worker.Result {
         // do job for step three
         return nil
 }

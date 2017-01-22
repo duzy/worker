@@ -15,7 +15,7 @@ type increaseNumber struct {
         number int
 }
 
-func (job *increaseNumber) Action() Result {
+func (job *increaseNumber) Go(n int) Result {
         job.mutex.Lock(); defer job.mutex.Unlock()
         job.number++
         return &checkResult{ job.number }
@@ -25,7 +25,7 @@ type checkResult struct {
         number int
 }
 
-func (job *checkResult) Action() Result {
+func (job *checkResult) Go(n int) Result {
         checkMutex.Lock(); defer checkMutex.Unlock()
         checkCounter++
         return nil
@@ -83,7 +83,7 @@ var (
 type job0 struct {
         tag string
 }
-func (job *job0) Action() Result {
+func (job *job0) Go(n int) Result {
         job0Mutex.Lock(); defer job0Mutex.Unlock()
         job0Executed++
         return new(job1)
@@ -92,7 +92,7 @@ func (job *job0) Action() Result {
 type job1 struct {
         tag string
 }
-func (job *job1) Action() Result {
+func (job *job1) Go(n int) Result {
         job1Mutex.Lock(); defer job1Mutex.Unlock()
         job1Executed++
         return new(job2)
@@ -101,7 +101,7 @@ func (job *job1) Action() Result {
 type job2 struct {
         tag string
 }
-func (job *job2) Action() Result {
+func (job *job2) Go(n int) Result {
         job2Mutex.Lock(); defer job2Mutex.Unlock()
         job2Executed++
         return "done"
