@@ -29,16 +29,16 @@ type guard struct {
         sentry *Sentry
         job Job
 }
-func (m *guard) Go() Result {
-        return &unguard{ m.sentry, m.job.Go() }
+func (m *guard) Go(n int) Result {
+        return &unguard{ m.sentry, m.job.Go(n) }
 }
 
 type unguard struct {
         sentry *Sentry
         result Result
 }
-func (m *unguard) Go() Result {
-        result := chainJob(m.result)
+func (m *unguard) Go(n int) Result {
+        result := chainJob(m.result, n)
         m.sentry.mutex.Lock() 
         m.sentry.results = append(m.sentry.results, result)
         m.sentry.mutex.Unlock()
@@ -49,7 +49,7 @@ func (m *unguard) Go() Result {
 type stop struct {
         waiter *sync.WaitGroup
 }
-func (m *stop) Go() Result { return nil }
+func (m *stop) Go(n int) Result { return nil }
 
 // Worker represents a worker to dispatch jobs being done.
 type Worker struct {
@@ -70,10 +70,10 @@ func SpawnN(num int) *Worker {
         return w
 }
 
-func chainJob(result Result) Result {
+func chainJob(result Result, n int) Result {
         for ; result != nil; {
                 if j, ok := result.(Continue); ok && j != nil {
-                        result = j.Go()
+                        result = j.Go(n)
                 } else {
                         break
                 }
@@ -88,14 +88,14 @@ func (w *Worker) routine(num int) {
                         if stop, ok := msg.(*stop); ok && stop != nil {
                                 sw = stop.waiter
                         }
-                        w.o <- msg.Go(num); go w.advance(sw)
+                        w.o <- msg.Go(num); go w.advance(sw, num)
                         if sw != nil { return }
                 }
         }
 }
 
-func (w *Worker) advance(wg *sync.WaitGroup) {
-        if chainJob(<-w.o); wg != nil {
+func (w *Worker) advance(wg *sync.WaitGroup, n int) {
+        if chainJob(<-w.o, n); wg != nil {
                 wg.Done()
         }
 }
@@ -115,14 +115,8 @@ func (w *Worker) SpawnN(num int) error {
         return nil
 }
 
-// Worker.Kill stops all threads.
-func (w *Worker) Kill() error {
-        // TODO: stops all threads immediately
-        return w.Wait()
-}
-
-// Worker.Wait waits all jobs for finished.
-func (w *Worker) Wait() error {
+// Worker.Stop stops all threads.
+func (w *Worker) Stop() error {
         if w.i == nil {
                 return errors.New("worker free")
         }

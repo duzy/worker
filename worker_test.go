@@ -39,7 +39,7 @@ func TestWorker(t *testing.T) {
         for i := 0; i < num; i++ {
                 w.Do(job)
         }
-        w.Kill()
+        w.Stop()
         if job.number != num { t.Errorf("wrong job number") }
         if checkCounter != num { t.Errorf("wrong number of replies") }
 }
@@ -69,7 +69,7 @@ func TestSentry(t *testing.T) {
                 }
         }
 
-        w.Kill()
+        w.Stop()
 }
 
 var (
@@ -115,7 +115,7 @@ func TestJobChain(t *testing.T) {
         for i := 0; i < num; i++ {
                 w.Do(job)
         }
-        w.Kill()
+        w.Stop()
         
         if job0Executed != num { t.Errorf("job0: %v != %v", job0Executed, num) }
         if job1Executed != num { t.Errorf("job1: %v != %v", job1Executed, num) }
