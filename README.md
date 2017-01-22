@@ -44,7 +44,7 @@ func main() {
         w.Do(&StepOne{ "anything goes" })
         w.Kill()
 
-        w = SpawnN(3)
+        w = worker.SpawnN(3)
         sentry := w.Sentry()
         sentry.Guard(&StepOne{ "anything goes" })
         sentry.Guard(&StepOne{ "anything goes" })
